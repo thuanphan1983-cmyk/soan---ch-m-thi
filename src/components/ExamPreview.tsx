@@ -48,15 +48,22 @@ export default function ExamPreview({ examData: initialExam, isLoading }: ExamPr
         },
         body: JSON.stringify({ question, grade: exam.grade, apiKey: storedKey || undefined }),
       });
-      const data = await res.json();
-      if (data.success && data.question) {
+      const text = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(text || 'Máy chủ phản hồi định dạng không hợp lệ');
+      }
+      if (!res.ok || !data.success) {
+        throw new Error(data?.error || data?.message || 'Không thể đổi câu hỏi.');
+      }
+      if (data.question) {
         const updatedQuestions = exam.questions.map(q => q.id === question.id ? data.question : q);
         setExam({ ...exam, questions: updatedQuestions });
-      } else {
-        alert(data.error || 'Không thể đổi câu hỏi.');
       }
-    } catch {
-      alert('Lỗi kết nối khi đổi câu hỏi.');
+    } catch (err: any) {
+      alert(err.message || 'Lỗi kết nối khi đổi câu hỏi.');
     } finally {
       setRegeneratingId(null);
     }

@@ -101,14 +101,21 @@ export default function InputTabs({
           apiKey: storedKey || undefined,
         }),
       });
-      const data = await res.json();
-      if (data.success && data.text) {
-        setExtractedPreview(data.text);
-      } else {
-        alert(data.error || 'Không thể trích xuất ảnh.');
+      const text = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error(text || 'Máy chủ phản hồi định dạng không hợp lệ');
       }
-    } catch {
-      alert('Lỗi kết nối khi trích xuất ảnh.');
+      if (!res.ok || !data.success) {
+        throw new Error(data?.error || data?.message || 'Không thể trích xuất ảnh.');
+      }
+      if (data.text) {
+        setExtractedPreview(data.text);
+      }
+    } catch (err: any) {
+      alert(err.message || 'Lỗi kết nối khi trích xuất ảnh.');
     } finally {
       setIsExtracting(false);
     }

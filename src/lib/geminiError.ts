@@ -22,7 +22,7 @@ export function formatGeminiError(error: any): string {
 
   // 404 Model Not Found
   if (status === 404 || msg.includes('404') || msg.includes('not found') || msg.includes('is no longer available')) {
-    return 'Model AI yêu cầu tạm thời không khả dụng trên tài khoản Google AI của bạn. Hệ thống đang tự động chuyển sang gemini-3.8-flash, vui lòng thử lại.';
+    return 'Model AI yêu cầu tạm thời không khả dụng trên tài khoản Google AI của bạn. Hệ thống đang tự động chuyển sang gemini-2.0-flash / gemini-1.5-flash, vui lòng thử lại.';
   }
 
   // Invalid API key

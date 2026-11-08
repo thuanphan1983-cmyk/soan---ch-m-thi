@@ -65,12 +65,22 @@ export default function HomePage() {
         }),
       });
 
-      const data: GenerateResponse = await response.json();
+      const text = await response.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        throw new Error(text || 'Máy chủ phản hồi định dạng không hợp lệ');
+      }
 
-      if (data.success && data.exam) {
+      if (!response.ok || !data.success) {
+        throw new Error(data?.error || data?.message || 'Lỗi xử lý từ máy chủ');
+      }
+
+      if (data.exam) {
         setExamData(data.exam);
       } else {
-        setError(data.error || 'Đã xảy ra lỗi không xác định.');
+        throw new Error('Dữ liệu đề thi nhận về không hợp lệ');
       }
     } catch (err: any) {
       setError(err.message || 'Lỗi kết nối. Vui lòng thử lại.');

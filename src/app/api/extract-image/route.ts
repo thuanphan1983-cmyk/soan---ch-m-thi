@@ -7,21 +7,31 @@ export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { imageBase64, imageMimeType } = body;
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({
+        success: false,
+        error: 'Dữ liệu ảnh gửi lên không đúng định dạng JSON.'
+      }, { status: 400 });
+    }
+
+    const { imageBase64, imageMimeType = 'image/png' } = body;
 
     const apiKey = getGeminiApiKey(request, body);
     if (!apiKey) {
       return NextResponse.json({
         success: false,
         error: 'API key chưa được cấu hình. Vui lòng thêm GEMINI_API_KEY vào Vercel Settings > Environment Variables hoặc nhập trực tiếp trên giao diện web.'
-      }, { status: 500 });
+      }, { status: 401 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    let visionModel = process.env.GEMINI_FLASH_MODEL || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
-    if (visionModel.includes('2.5-pro')) visionModel = 'gemini-3.1-pro-preview';
-    else if (visionModel.includes('2.5-flash')) visionModel = 'gemini-3.8-flash';
+    let visionModel = process.env.GEMINI_FLASH_MODEL || process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+    if (visionModel.includes('3.8') || visionModel.includes('3.1') || visionModel.includes('2.5')) {
+      visionModel = 'gemini-1.5-flash';
+    }
 
     const model = genAI.getGenerativeModel({
       model: visionModel,
@@ -46,7 +56,7 @@ Trả lời dưới dạng văn bản có cấu trúc rõ ràng, giữ nguyên m
     const status = error?.status === 429 ? 429 : 500;
     return NextResponse.json({
       success: false,
-      error: friendlyError,
+      error: friendlyError || error?.message || 'Lỗi trích xuất ảnh từ máy chủ',
     }, { status });
   }
 }

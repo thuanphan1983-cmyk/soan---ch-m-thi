@@ -4,8 +4,9 @@
 
 // --- Model Configuration ---
 export type GeminiModel = 
-  | 'gemini-3.8-flash'
-  | 'gemini-3.1-pro-preview'
+  | 'gemini-2.0-flash'
+  | 'gemini-1.5-flash'
+  | 'gemini-1.5-pro'
   | string;
 
 export type ModelMode = 'economy' | 'standard' | 'advanced';
@@ -21,23 +22,23 @@ export interface ModelConfig {
 export const MODEL_CONFIGS: Record<ModelMode, ModelConfig> = {
   economy: {
     mode: 'economy',
-    model: 'gemini-3.8-flash',
+    model: 'gemini-1.5-flash',
     label: 'Siêu Tiết Kiệm',
-    description: 'Flash: Tạo đề cơ bản, trích xuất ma trận',
+    description: 'Flash 1.5: Tối ưu hạn ngạch Free Tier, tốc độ cao',
     icon: '⚡',
   },
   standard: {
     mode: 'standard',
-    model: 'gemini-3.8-flash',
+    model: 'gemini-2.0-flash',
     label: 'Tiêu Chuẩn',
-    description: 'Flash: Cân bằng chất lượng và chi phí',
+    description: 'Flash 2.0: Cân bằng tốc độ và chất lượng Toán học GDPT 2018',
     icon: '🔥',
   },
   advanced: {
     mode: 'advanced',
-    model: 'gemini-3.8-flash',
+    model: 'gemini-1.5-pro',
     label: 'Chuyên Sâu',
-    description: 'Tối ưu lập luận giải chi tiết, câu VDC (Gemini 3.8 Flash)',
+    description: 'Pro 1.5: Tư duy toán học sâu, tối ưu câu VDC & lời giải chi tiết',
     icon: '🧠',
   },
 };
