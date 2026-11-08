@@ -18,17 +18,19 @@ export async function POST(request: NextRequest) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const modelConfig = MODEL_CONFIGS[modelMode] || MODEL_CONFIGS.standard;
 
-    // Resolve model dynamically: support GEMINI_PRO_MODEL, GEMINI_MODEL or fallback to gemini-3.1-pro-preview
+    // Resolve model dynamically: support GEMINI_PRO_MODEL, GEMINI_FLASH_MODEL, GEMINI_MODEL
     let selectedModel: string = modelConfig.model;
     if (modelMode === 'advanced') {
       selectedModel = process.env.GEMINI_PRO_MODEL || process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
-    } else if (process.env.GEMINI_MODEL && modelMode === 'standard') {
-      selectedModel = process.env.GEMINI_MODEL;
+    } else if (modelMode === 'economy' || modelMode === 'standard') {
+      selectedModel = process.env.GEMINI_FLASH_MODEL || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
     }
 
-    // Automatic safety guard: replace deprecated 'gemini-2.5-pro' with 'gemini-3.1-pro-preview'
-    if (selectedModel === 'gemini-2.5-pro') {
-      selectedModel = process.env.GEMINI_PRO_MODEL || process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
+    // Automatic safety guard: sanitize any deprecated gemini-2.5 models
+    if (selectedModel.includes('2.5-pro')) {
+      selectedModel = process.env.GEMINI_PRO_MODEL || 'gemini-3.1-pro-preview';
+    } else if (selectedModel.includes('2.5-flash')) {
+      selectedModel = process.env.GEMINI_FLASH_MODEL || 'gemini-3.8-flash';
     }
 
     const generationConfig = {
@@ -79,8 +81,8 @@ export async function POST(request: NextRequest) {
       result = await model.generateContent(parts);
     } catch (genError: any) {
       console.warn(`Error generating with model ${selectedModel}:`, genError?.message);
-      // Fallback: if selectedModel failed with 404 or unsupported, retry with alternate model
-      const fallbackModel = selectedModel === 'gemini-2.5-flash' ? 'gemini-3.1-pro-preview' : 'gemini-2.5-flash';
+      // Fallback: if selectedModel failed with 404 or unsupported, retry with alternate modern model
+      const fallbackModel = selectedModel === 'gemini-3.8-flash' ? 'gemini-3.1-pro-preview' : 'gemini-3.8-flash';
       console.info(`Attempting fallback to model: ${fallbackModel}`);
       const fallbackGenModel = genAI.getGenerativeModel({
         model: fallbackModel,

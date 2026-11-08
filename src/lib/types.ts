@@ -4,8 +4,7 @@
 
 // --- Model Configuration ---
 export type GeminiModel = 
-  | 'gemini-2.5-flash'
-  | 'gemini-2.5-flash-lite'
+  | 'gemini-3.8-flash'
   | 'gemini-3.1-pro-preview'
   | string;
 
@@ -22,14 +21,14 @@ export interface ModelConfig {
 export const MODEL_CONFIGS: Record<ModelMode, ModelConfig> = {
   economy: {
     mode: 'economy',
-    model: 'gemini-2.5-flash-lite',
+    model: 'gemini-3.8-flash',
     label: 'Siêu Tiết Kiệm',
-    description: 'Flash-Lite: Tạo đề cơ bản, trích xuất ma trận',
+    description: 'Flash: Tạo đề cơ bản, trích xuất ma trận',
     icon: '⚡',
   },
   standard: {
     mode: 'standard',
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.8-flash',
     label: 'Tiêu Chuẩn',
     description: 'Flash: Cân bằng chất lượng và chi phí',
     icon: '🔥',

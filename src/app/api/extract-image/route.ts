@@ -13,9 +13,12 @@ export async function POST(request: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const visionModel = process.env.GEMINI_FLASH_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    let visionModel = process.env.GEMINI_FLASH_MODEL || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+    if (visionModel.includes('2.5-pro')) visionModel = 'gemini-3.1-pro-preview';
+    else if (visionModel.includes('2.5-flash')) visionModel = 'gemini-3.8-flash';
+
     const model = genAI.getGenerativeModel({
-      model: visionModel === 'gemini-2.5-pro' ? 'gemini-3.1-pro-preview' : visionModel,
+      model: visionModel,
       generationConfig: { temperature: 0.2, maxOutputTokens: 8192 },
     });
 
