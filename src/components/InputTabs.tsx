@@ -88,12 +88,17 @@ export default function InputTabs({
     if (!imageBase64) return;
     setIsExtracting(true);
     try {
+      const storedKey = typeof window !== 'undefined' ? (localStorage.getItem('gemini_api_key') || localStorage.getItem('GEMINI_API_KEY') || '') : '';
       const res = await fetch('/api/extract-image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(storedKey ? { 'x-api-key': storedKey } : {})
+        },
         body: JSON.stringify({
           imageBase64,
           imageMimeType: 'image/png',
+          apiKey: storedKey || undefined,
         }),
       });
       const data = await res.json();

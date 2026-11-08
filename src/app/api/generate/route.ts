@@ -3,6 +3,7 @@ import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { GenerateRequest, MODEL_CONFIGS, ExamData } from '@/lib/types';
 import { buildSystemPrompt, buildResponseSchema } from '@/lib/geminiPrompt';
 import { formatGeminiError } from '@/lib/geminiError';
+import { getGeminiApiKey } from '@/lib/apiKey';
 
 export const maxDuration = 120;
 
@@ -11,9 +12,12 @@ export async function POST(request: NextRequest) {
     const body: GenerateRequest = await request.json();
     const { inputMode, modelMode, textPrompt, matrixText, imageBase64, imageMimeType, structure } = body;
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = getGeminiApiKey(request, body);
     if (!apiKey) {
-      return NextResponse.json({ success: false, error: 'API key chưa được cấu hình. Vui lòng thêm GEMINI_API_KEY vào file .env.local' }, { status: 500 });
+      return NextResponse.json({
+        success: false,
+        error: 'API key chưa được cấu hình. Vui lòng cấu hình biến GEMINI_API_KEY (hoặc GOOGLE_API_KEY) trong Vercel Settings > Environment Variables, hoặc nhập API Key trực tiếp trên giao diện web.'
+      }, { status: 500 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);

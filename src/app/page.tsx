@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { ExamData, ExamStructure, ModelMode, InputMode, GenerateResponse } from '@/lib/types';
 import ModelSelector from '@/components/ModelSelector';
+import ApiKeyModal from '@/components/ApiKeyModal';
 import InputTabs from '@/components/InputTabs';
 import ExamStructureConfig from '@/components/ExamStructureConfig';
 import ExamPreview from '@/components/ExamPreview';
@@ -15,6 +16,20 @@ export default function HomePage() {
   const [matrixText, setMatrixText] = useState('');
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState<string>('');
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [userApiKey, setUserApiKey] = useState('');
+  const [hasApiKey, setHasApiKey] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('gemini_api_key') || localStorage.getItem('GEMINI_API_KEY') || '';
+      if (stored) {
+        setUserApiKey(stored);
+        setHasApiKey(true);
+      }
+    }
+  }, []);
+
   const [structure, setStructure] = useState<ExamStructure>({
     partI: 12,
     partII: 4,
@@ -31,9 +46,13 @@ export default function HomePage() {
     setError(null);
 
     try {
+      const effectiveKey = userApiKey || (typeof window !== 'undefined' ? (localStorage.getItem('gemini_api_key') || localStorage.getItem('GEMINI_API_KEY') || '') : '');
       const response = await fetch('/api/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(effectiveKey ? { 'x-api-key': effectiveKey } : {})
+        },
         body: JSON.stringify({
           inputMode,
           modelMode,
@@ -42,6 +61,7 @@ export default function HomePage() {
           imageBase64: inputMode === 'image' ? imageBase64 : undefined,
           imageMimeType: inputMode === 'image' ? imageMimeType : undefined,
           structure,
+          apiKey: effectiveKey || undefined,
         }),
       });
 
@@ -57,7 +77,7 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [inputMode, modelMode, textPrompt, matrixText, imageBase64, imageMimeType, structure]);
+  }, [inputMode, modelMode, textPrompt, matrixText, imageBase64, imageMimeType, structure, userApiKey]);
 
   const handleImageUpload = useCallback((base64: string, mimeType: string) => {
     setImageBase64(base64);
@@ -79,10 +99,36 @@ export default function HomePage() {
                 <p className="text-xs text-gray-500">Chuẩn Bộ GD&ĐT • GDPT 2018</p>
               </div>
             </div>
-            <ModelSelector value={modelMode} onChange={setModelMode} />
+            
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                onClick={() => setIsApiKeyModalOpen(true)}
+                title="Cài đặt API Key Gemini để sinh đề thi"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                  hasApiKey
+                    ? 'border-green-200 bg-green-50 text-green-700 hover:bg-green-100'
+                    : 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 shadow-sm'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${hasApiKey ? 'bg-green-500' : 'bg-amber-500 animate-pulse'}`} />
+                <span>{hasApiKey ? '🔑 API Key: Đã lưu' : '🔑 Cài đặt API Key'}</span>
+              </button>
+
+              <ModelSelector value={modelMode} onChange={setModelMode} />
+            </div>
           </div>
         </div>
       </header>
+
+      {/* API Key Modal */}
+      <ApiKeyModal
+        isOpen={isApiKeyModalOpen}
+        onClose={() => setIsApiKeyModalOpen(false)}
+        onKeySaved={(k) => {
+          setUserApiKey(k);
+          setHasApiKey(!!k);
+        }}
+      />
 
       {/* === MAIN CONTENT === */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

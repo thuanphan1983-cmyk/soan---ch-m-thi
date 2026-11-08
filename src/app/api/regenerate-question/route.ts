@@ -2,16 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Question } from '@/lib/types';
 import { formatGeminiError } from '@/lib/geminiError';
+import { getGeminiApiKey } from '@/lib/apiKey';
 
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
-    const { question, grade = 12 } = await request.json();
+    const body = await request.json();
+    const { question, grade = 12 } = body;
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = getGeminiApiKey(request, body);
     if (!apiKey) {
-      return NextResponse.json({ success: false, error: 'API key chưa được cấu hình' }, { status: 500 });
+      return NextResponse.json({
+        success: false,
+        error: 'API key chưa được cấu hình. Vui lòng thêm GEMINI_API_KEY vào Vercel Settings > Environment Variables hoặc nhập trực tiếp trên giao diện web.'
+      }, { status: 500 });
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);

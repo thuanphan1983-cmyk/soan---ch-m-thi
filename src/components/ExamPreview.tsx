@@ -39,10 +39,14 @@ export default function ExamPreview({ examData: initialExam, isLoading }: ExamPr
     if (!exam) return;
     setRegeneratingId(question.id);
     try {
+      const storedKey = typeof window !== 'undefined' ? (localStorage.getItem('gemini_api_key') || localStorage.getItem('GEMINI_API_KEY') || '') : '';
       const res = await fetch('/api/regenerate-question', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, grade: exam.grade }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(storedKey ? { 'x-api-key': storedKey } : {})
+        },
+        body: JSON.stringify({ question, grade: exam.grade, apiKey: storedKey || undefined }),
       });
       const data = await res.json();
       if (data.success && data.question) {
