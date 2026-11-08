@@ -6,7 +6,8 @@
 export type GeminiModel = 
   | 'gemini-2.5-flash'
   | 'gemini-2.5-flash-lite'
-  | 'gemini-2.5-pro';
+  | 'gemini-3.1-pro-preview'
+  | string;
 
 export type ModelMode = 'economy' | 'standard' | 'advanced';
 
@@ -35,9 +36,9 @@ export const MODEL_CONFIGS: Record<ModelMode, ModelConfig> = {
   },
   advanced: {
     mode: 'advanced',
-    model: 'gemini-2.5-pro',
+    model: 'gemini-3.1-pro-preview',
     label: 'Chuyên Sâu',
-    description: 'Pro: Giải chi tiết, câu VDC phức tạp',
+    description: 'Pro: Giải chi tiết, câu VDC phức tạp (Gemini 3.1 Pro)',
     icon: '🧠',
   },
 };

@@ -14,8 +14,9 @@ export async function POST(request: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
+    const regenModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: regenModel === 'gemini-2.5-pro' ? 'gemini-3.1-pro-preview' : regenModel,
       generationConfig: {
         responseMimeType: 'application/json',
         temperature: 0.8,

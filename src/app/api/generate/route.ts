@@ -18,15 +18,31 @@ export async function POST(request: NextRequest) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const modelConfig = MODEL_CONFIGS[modelMode] || MODEL_CONFIGS.standard;
 
+    // Resolve model dynamically: support GEMINI_PRO_MODEL, GEMINI_MODEL or fallback to gemini-3.1-pro-preview
+    let selectedModel: string = modelConfig.model;
+    if (modelMode === 'advanced') {
+      selectedModel = process.env.GEMINI_PRO_MODEL || process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
+    } else if (process.env.GEMINI_MODEL && modelMode === 'standard') {
+      selectedModel = process.env.GEMINI_MODEL;
+    }
+
+    // Automatic safety guard: replace deprecated 'gemini-2.5-pro' with 'gemini-3.1-pro-preview'
+    if (selectedModel === 'gemini-2.5-pro') {
+      selectedModel = process.env.GEMINI_PRO_MODEL || process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
+    }
+
+    const generationConfig = {
+      responseMimeType: 'application/json',
+      responseSchema: buildResponseSchema() as any,
+      temperature: 0.7,
+      maxOutputTokens: 16384,
+    };
+    const systemInstruction = buildSystemPrompt(structure);
+
     const model = genAI.getGenerativeModel({
-      model: modelConfig.model,
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: buildResponseSchema() as any,
-        temperature: 0.7,
-        maxOutputTokens: 16384,
-      },
-      systemInstruction: buildSystemPrompt(structure),
+      model: selectedModel,
+      generationConfig,
+      systemInstruction,
     });
 
     let userPrompt = '';
@@ -58,7 +74,21 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Chế độ nhập không hợp lệ' }, { status: 400 });
     }
 
-    const result = await model.generateContent(parts);
+    let result;
+    try {
+      result = await model.generateContent(parts);
+    } catch (genError: any) {
+      console.warn(`Error generating with model ${selectedModel}:`, genError?.message);
+      // Fallback: if selectedModel failed with 404 or unsupported, retry with alternate model
+      const fallbackModel = selectedModel === 'gemini-2.5-flash' ? 'gemini-3.1-pro-preview' : 'gemini-2.5-flash';
+      console.info(`Attempting fallback to model: ${fallbackModel}`);
+      const fallbackGenModel = genAI.getGenerativeModel({
+        model: fallbackModel,
+        generationConfig,
+        systemInstruction,
+      });
+      result = await fallbackGenModel.generateContent(parts);
+    }
     const response = result.response;
     const text = response.text();
 
