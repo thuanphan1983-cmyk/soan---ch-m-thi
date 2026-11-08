@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { GenerateRequest, MODEL_CONFIGS, ExamData } from '@/lib/types';
 import { buildSystemPrompt, buildResponseSchema } from '@/lib/geminiPrompt';
+import { formatGeminiError } from '@/lib/geminiError';
 
 export const maxDuration = 120;
 
@@ -18,19 +19,19 @@ export async function POST(request: NextRequest) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const modelConfig = MODEL_CONFIGS[modelMode] || MODEL_CONFIGS.standard;
 
-    // Resolve model dynamically: support GEMINI_PRO_MODEL, GEMINI_FLASH_MODEL, GEMINI_MODEL
-    let selectedModel: string = modelConfig.model;
-    if (modelMode === 'advanced') {
-      selectedModel = process.env.GEMINI_PRO_MODEL || process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview';
-    } else if (modelMode === 'economy' || modelMode === 'standard') {
-      selectedModel = process.env.GEMINI_FLASH_MODEL || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+    // Resolve model: Priority process.env.GEMINI_MODEL -> specific env -> modelConfig -> default 'gemini-3.8-flash'
+    let selectedModel: string = process.env.GEMINI_MODEL || modelConfig.model || 'gemini-3.8-flash';
+    if (modelMode === 'advanced' && process.env.GEMINI_PRO_MODEL) {
+      selectedModel = process.env.GEMINI_PRO_MODEL;
+    } else if (modelMode === 'economy' && process.env.GEMINI_FLASH_MODEL) {
+      selectedModel = process.env.GEMINI_FLASH_MODEL;
     }
 
     // Automatic safety guard: sanitize any deprecated gemini-2.5 models
     if (selectedModel.includes('2.5-pro')) {
-      selectedModel = process.env.GEMINI_PRO_MODEL || 'gemini-3.1-pro-preview';
+      selectedModel = process.env.GEMINI_PRO_MODEL || 'gemini-3.8-flash';
     } else if (selectedModel.includes('2.5-flash')) {
-      selectedModel = process.env.GEMINI_FLASH_MODEL || 'gemini-3.8-flash';
+      selectedModel = 'gemini-3.8-flash';
     }
 
     const generationConfig = {
@@ -81,15 +82,18 @@ export async function POST(request: NextRequest) {
       result = await model.generateContent(parts);
     } catch (genError: any) {
       console.warn(`Error generating with model ${selectedModel}:`, genError?.message);
-      // Fallback: if selectedModel failed with 404 or unsupported, retry with alternate modern model
-      const fallbackModel = selectedModel === 'gemini-3.8-flash' ? 'gemini-3.1-pro-preview' : 'gemini-3.8-flash';
-      console.info(`Attempting fallback to model: ${fallbackModel}`);
-      const fallbackGenModel = genAI.getGenerativeModel({
-        model: fallbackModel,
-        generationConfig,
-        systemInstruction,
-      });
-      result = await fallbackGenModel.generateContent(parts);
+      // Fallback: if selectedModel failed with 429 quota or 404, fallback to gemini-3.8-flash immediately
+      if (selectedModel !== 'gemini-3.8-flash') {
+        console.info('Attempting fallback to gemini-3.8-flash...');
+        const fallbackGenModel = genAI.getGenerativeModel({
+          model: 'gemini-3.8-flash',
+          generationConfig,
+          systemInstruction,
+        });
+        result = await fallbackGenModel.generateContent(parts);
+      } else {
+        throw genError;
+      }
     }
     const response = result.response;
     const text = response.text();
@@ -118,9 +122,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, exam: examData });
   } catch (error: any) {
     console.error('Generate error:', error);
+    const friendlyError = formatGeminiError(error);
+    const status = error?.status === 429 ? 429 : 500;
     return NextResponse.json({
       success: false,
-      error: error.message || 'Đã xảy ra lỗi khi tạo đề thi. Vui lòng thử lại.',
-    }, { status: 500 });
+      error: friendlyError,
+    }, { status });
   }
 }

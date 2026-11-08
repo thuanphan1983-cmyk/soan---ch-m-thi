@@ -35,9 +35,9 @@ export const MODEL_CONFIGS: Record<ModelMode, ModelConfig> = {
   },
   advanced: {
     mode: 'advanced',
-    model: 'gemini-3.1-pro-preview',
+    model: 'gemini-3.8-flash',
     label: 'Chuyên Sâu',
-    description: 'Pro: Giải chi tiết, câu VDC phức tạp (Gemini 3.1 Pro)',
+    description: 'Tối ưu lập luận giải chi tiết, câu VDC (Gemini 3.8 Flash)',
     icon: '🧠',
   },
 };

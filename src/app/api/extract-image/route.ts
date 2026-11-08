@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { formatGeminiError } from '@/lib/geminiError';
 
 export const maxDuration = 60;
 
@@ -36,9 +37,11 @@ Trả lời dưới dạng văn bản có cấu trúc rõ ràng, giữ nguyên m
     return NextResponse.json({ success: true, text: extractedText });
   } catch (error: any) {
     console.error('Extract error:', error);
+    const friendlyError = formatGeminiError(error);
+    const status = error?.status === 429 ? 429 : 500;
     return NextResponse.json({
       success: false,
-      error: error.message || 'Lỗi trích xuất ảnh',
-    }, { status: 500 });
+      error: friendlyError,
+    }, { status });
   }
 }
