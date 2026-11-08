@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Question } from '@/lib/types';
+import { formatGeminiError } from '@/lib/geminiError';
 
 export const maxDuration = 60;
 
@@ -80,6 +81,8 @@ YÊU CẦU BẮT BUỘC:
     return NextResponse.json({ success: true, question: newQuestion });
   } catch (error: any) {
     console.error('Regenerate question error:', error);
-    return NextResponse.json({ success: false, error: error.message || 'Lỗi khi đổi câu hỏi' }, { status: 500 });
+    const friendlyError = formatGeminiError(error);
+    const status = error?.status === 429 ? 429 : 500;
+    return NextResponse.json({ success: false, error: friendlyError }, { status });
   }
 }
